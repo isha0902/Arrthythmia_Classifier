@@ -10,6 +10,8 @@
 
 > Classifying ECG-derived clinical/signal features into one of 16 arrhythmia classes using classical ML — with a particular focus on doing imbalanced, high-dimensional, small-sample classification *rigorously*, including catching and documenting a data leakage bug that inflated an early PCA+SMOTE result from 0.40 to 0.98 macro-F1.
 
+**Quick results:** tuned Random Forest, 0.637 macro-F1 (9-class) / 0.786 macro-F1 (binary sanity check) · PCA+SMOTE tried and rejected after a leakage fix dropped its score below the plain baseline.
+
 </div>
 
 ---
@@ -172,6 +174,15 @@ Raw UCI Data (452 × 280, last column = label)
 
 > ✅ **Final selected model: tuned Random Forest** (`max_depth=10, min_samples_leaf=4, n_estimators=100, class_weight="balanced"`) — macro-F1 0.637, held-out test accuracy 0.714.
 
+### Held-out test results (final model)
+
+<p align="center">
+  <img src="Image/final_confusion_matrix.png" alt="Final Confusion Matrix" width="480">
+  <img src="Image/feature_importance.png" alt="Top 15 Feature Importances" width="480">
+</p>
+
+> Heart rate (feature index 14) was by far the most important feature — roughly 3x more predictive than the next-ranked feature. The confusion matrix shows strong diagonal concentration for the larger classes (1, 2, 3, 4, 6, 10), with classes 5 and 16 remaining unreliable due to too few real training examples.
+
 ---
 
 ## 🔍 Key Findings
@@ -189,6 +200,15 @@ Classes 5 (13 samples) and 16 (22 samples) stayed near-zero precision/recall acr
 
 **Binary framing confirmed the pipeline is sound.**
 Collapsing to arrhythmia present/absent scored substantially higher (0.786 vs. 0.637 macro-F1) using the identical tuned model — confirming the 9-class task's lower score reflects genuine problem difficulty, not a broken pipeline.
+
+---
+
+## 🔭 Future Work
+
+- **Two-stage classification:** given how much stronger the binary (present/absent) model performed, a first-stage "is arrhythmia present" classifier followed by a second-stage type classifier (only run on positive cases) may outperform a single 9-way classifier.
+- **More data or class-specific collection:** classes 5 and 16 stayed unreliable across every technique tried here (imputation, class weighting, tuning, PCA, SMOTE) — the likely bottleneck is sample count (13 and 22 respectively), not modeling approach.
+- **Signal-level features:** this project used only summary statistics from ECG leads (widths, amplitudes, angles), per the original PRD's scope. Raw waveform modeling (e.g. 1D CNNs on the underlying signal) is a natural, more data-hungry extension.
+- **Revisit PCA with a supervised alternative:** since PCA optimizes for variance rather than class separability, a supervised dimensionality reduction method (e.g. LDA) might preserve more of the signal that actually separates rare classes.
 
 ---
 
